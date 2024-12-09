@@ -1,5 +1,5 @@
 from typing import Dict
-
+import numpy as np
 from configuration import TSPConfiguration
 
 def read_tour_solution(tour_file_path: str) -> Dict[int, int]:
@@ -82,3 +82,9 @@ def read_tsp_configuration(tsp_file_path: str) -> TSPConfiguration:
         edge_weight_type=edge_weight_type,
         node_coordinates=node_coordinates
     )
+
+def save_distances_matrix(matrix):
+    mat = np.matrix(matrix)
+    with open(f'{"distances.txt"}','wb') as f:
+        for line in mat:
+            np.savetxt(f, line, fmt='%.2f')
