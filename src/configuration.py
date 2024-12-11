@@ -40,7 +40,7 @@ class TSPConfiguration:
 
         return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
     
-    def built_distances_matrix(self):
+    def build_distances_matrix(self):
         distances_matrix = [[0 for _ in range(self.dimension)] for _ in range(self.dimension)]
         for i in range(self.dimension):
             for j in range(self.dimension):

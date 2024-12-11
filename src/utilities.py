@@ -1,6 +1,10 @@
 from typing import Dict
 import numpy as np
+import matplotlib.pyplot as plt
 from configuration import TSPConfiguration
+
+__all__ = ["read_tsp_configuration", "read_tour_solution", "save_distances_matrix", 
+           "plot_nodes"]
 
 def read_tour_solution(tour_file_path: str) -> Dict[int, int]:
     """
@@ -88,3 +92,15 @@ def save_distances_matrix(matrix):
     with open(f'{"distances.txt"}','wb') as f:
         for line in mat:
             np.savetxt(f, line, fmt='%.2f')
+
+def plot_nodes(nodes_coordinates, savefig=False):
+    x = [x for x, y in nodes_coordinates]
+    y = [y for x, y in nodes_coordinates]
+    plt.figure(figsize=(10, 8))
+    plt.scatter(x, y, color='blue', s=1)
+    plt.title("Nodes configuration")
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    if savefig: plt.savefig(f'../images/nodes.pdf')
+    else: plt.show()
+    plt.close()
