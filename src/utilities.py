@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from configuration import TSPConfiguration
 
 __all__ = ["read_tsp_configuration", "read_tour_solution", "save_distances_matrix", 
-           "plot_nodes"]
+           "plot_nodes", "box_plot_chain_length", "print_cost_iterations_log"]
 
 def read_tour_solution(tour_file_path: str) -> Dict[int, int]:
     """
@@ -14,9 +14,9 @@ def read_tour_solution(tour_file_path: str) -> Dict[int, int]:
         tour_file_path (str): Path to the .opt.tour file
     
     Returns:
-        Dict[int, int]: A dictionary mapping node indices to their order in the optimal tour
+        List[int]: A last of nodes rapresenting the optimal tour
     """
-    tour_order = {}
+    tour_order = []
     with open(tour_file_path, 'r') as f:
         # Skip header lines
         while True:
@@ -30,7 +30,7 @@ def read_tour_solution(tour_file_path: str) -> Dict[int, int]:
             node = int(line.strip())
             if node == -1:  # End of tour marker
                 break
-            tour_order[node] = position
+            tour_order.insert(position, node - 1) 
             position += 1
     
     return tour_order
@@ -88,7 +88,7 @@ def read_tsp_configuration(tsp_file_path: str) -> TSPConfiguration:
     )
 
 def save_distances_matrix(matrix):
-    mat = np.matrix(matrix)
+    mat = np.array(matrix)
     with open(f'{"distances.txt"}','wb') as f:
         for line in mat:
             np.savetxt(f, line, fmt='%.2f')
@@ -104,3 +104,28 @@ def plot_nodes(nodes_coordinates, savefig=False):
     if savefig: plt.savefig(f'../images/nodes.pdf')
     else: plt.show()
     plt.close()
+    
+def print_cost_iterations_log(mean, costs_matrix, filename='costs_evolution.pdf'):
+    min_size = min(arr.shape[0] for arr in costs_matrix)
+    costs_matrix = [arr[:min_size] for arr in costs_matrix]
+    
+    costs_matrix = np.array(costs_matrix, dtype=np.float64)
+    mean = np.mean(costs_matrix, axis=0)
+    std = np.std(costs_matrix, axis=0)
+    lower_bound = mean - 1.96 * std / np.sqrt(costs_matrix.shape[0])
+    upper_bound = mean + 1.96 * std / np.sqrt(costs_matrix.shape[0])
+
+    plt.semilogx(mean, label='Mean')
+    plt.fill_between(range(len(mean)), lower_bound, upper_bound, alpha=0.4, label='95% confidence interval')
+    plt.xlabel('Iterations')
+    plt.ylabel('Cost')
+    plt.legend()
+    plt.savefig(f'../images/{filename}')
+    plt.show()
+
+def box_plot_chain_length(costs_matrix, filename='chain_length.pdf'):
+    plt.boxplot([arr.shape[0] for arr in costs_matrix])
+    plt.xlabel('Iterations')
+    plt.ylabel('Cost')
+    plt.savefig(f'../images/{filename}.pdf')
+    plt.show()

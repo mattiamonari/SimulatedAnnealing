@@ -23,7 +23,6 @@ class TSPConfiguration:
         self.edge_weight_type = edge_weight_type
         self.node_coordinates = node_coordinates
 
-
     def calculate_euclidean_distance(self, index1: int, index2: int) -> float:
         """
         Calculate the Euclidean distance between two nodes given their indices.

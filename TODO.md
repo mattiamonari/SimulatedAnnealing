@@ -74,3 +74,8 @@ while T > stopping_temperature:
 
 return best_solution
 ```
+
+TODO: 
+1. Plot best permutation for each cooling scheme
+2. Draw boxplots for each cooling scheme
+3. Other exercises

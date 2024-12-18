@@ -1,5 +1,10 @@
 from utilities import *
+
 import numpy as np
+from tqdm import tqdm
+import warnings
+import matplotlib.pyplot as plt
+warnings.filterwarnings("error")
 
 def calculate_tour_cost(matrix, permutation):
     cost = 0
@@ -11,20 +16,31 @@ def calculate_tour_cost(matrix, permutation):
     cost += matrix[int(permutation[-1])][int(permutation[0])]
     return cost
 
-def swap_two_cities(permutation):
-    i = np.random.randint(len(permutation))
-    j = np.random.randint(len(permutation))
-    permutation[i], permutation[j] = permutation[j], permutation[i]
-    return permutation
+def two_opt_move(permutation):
+    """
+    Perform a 2-opt move on the current permutation.
+
+    Args:
+        permutation (np.array): Current tour permutation
+
+    Returns:
+        np.array: New permutation after 2-opt move
+    """
+    # Create a copy of the permutation to avoid modifying the original
+    new_permutation = permutation.copy()
+
+    # Randomly select two different indices
+    n = len(permutation)
+    i, j = sorted(np.random.choice(n, 2, replace=False))
+
+    # Reverse the segment between i and j
+    new_permutation[i:j+1] = new_permutation[i:j+1][::-1]
+
+    return new_permutation
 
 # Maybe other class
-def simulated_annealing(matrix, initial_temperature, cooling_factor, max_iterations):
-    # Either start from a random permutation
-    #initial_permutation = np.random.permutation(matrix.shape[0])
-    # Or from the diagonal one: [city1 city2 ... cityn]
+def simulated_annealing(matrix, initial_temperature, cooling_factor, cooling_schedule=lambda t, a : t * a):
     initial_permutation = np.random.permutation(np.linspace(0, matrix.shape[0] - 1, matrix.shape[0], dtype=int))   
-    # print(initial_permutation.shape)
-    # print(initial_permutation)
 
     current_permutation = initial_permutation
     current_cost = calculate_tour_cost(matrix, current_permutation)
@@ -32,54 +48,102 @@ def simulated_annealing(matrix, initial_temperature, cooling_factor, max_iterati
     best_cost = current_cost
 
     temperature = initial_temperature
+    same_solution = 0
 
-    for i in range(max_iterations):
-        print(f"Iteration: {i}")
-        new_permutation = swap_two_cities(current_permutation)
+    #for i in tqdm(range(max_iterations)):
+    costs = []
+    while same_solution < 1500 and temperature > 0:
+        new_permutation = two_opt_move(current_permutation)
         cost = calculate_tour_cost(matrix, new_permutation)
         delta = cost - current_cost
 
         if delta < 0:
-            print(f"--> Accepted move, delta: {delta}")
+            # print(f"--> Accepted move, delta: {delta}")
             current_permutation = new_permutation
             current_cost = cost
+            same_solution = 0
         else:
-            probability = np.exp(-delta / temperature)
-            if np.random.rand() < probability:
-                print(f"--> Accepted move, probability: {probability}")
+            try:
+                probability = np.exp(-delta / temperature)
+            except RuntimeWarning:
+                probability = 0
+            if np.random.rand() <= probability:
+                # print(f"--> Accepted move, probability: {probability}")
                 current_permutation = new_permutation
+                same_solution = 0
                 current_cost = cost
             else:
-                print(f"--> Rejected move, probability: {probability}")
+                # print(f"--> Rejected move, probability: {probability}")
+                same_solution += 1
+                pass
 
         if current_cost < best_cost:
-            print(f"--> New best solution found, cost: {current_cost}")
+            # print(f"--> New best solution found, cost: {current_cost}")
             best_permutation = current_permutation
             best_cost = current_cost
 
-        temperature *= cooling_factor
-        print(f"Temperature: {temperature}")
+        costs.append(current_cost)
+        temperature = cooling_schedule(temperature, cooling_factor)
+        #print(f"Temperature: {temperature}")
+        
+    return best_permutation, best_cost, costs
 
-    return best_permutation, best_cost
+def run_multiple_simulated_annealing(matrix, initial_temperature, cooling_factor, cooling_schedule=lambda t, a : t * a):
+    best_permutations = []
+    best_costs = []
+    costs_matrix = []
+    for i in tqdm(range(50)):
+        best_permutation, best_cost, costs = simulated_annealing(matrix, initial_temperature, cooling_factor, cooling_schedule)
+        best_permutations.append(best_permutation)
+        best_costs.append(best_cost)
+        costs_matrix.append(np.array(costs))
+    return best_permutations, best_costs, costs_matrix
 
-
-# Example usage
+# https://cs.stackexchange.com/questions/11126/initial-temperature-in-simulated-annealing-algorithm
 if __name__ == "__main__":
+    
     # Read TSP configuration
-    config = read_tsp_configuration("../TSP-Configurations/a280.tsp.txt")
+    config = read_tsp_configuration("../TSP-Configurations/eil51.tsp.txt")
     print(f"Problem Name: {config.name}")
     print(f"Dimension: {config.dimension}")
-    save_distances_matrix(config.build_distances_matrix())
     print(f"First 5 Node Coordinates: {config.node_coordinates[:5]}")
+    
+    save_distances_matrix(config.build_distances_matrix())
     plot_nodes(config.node_coordinates, savefig=False)
+    
+    # Run multiple simulated annealing experiments
+    best_permutations, best_costs, costs_matrix = run_multiple_simulated_annealing(config.build_distances_matrix(), 100, 0.95)
 
-    best_permutation, best_cost = simulated_annealing(config.build_distances_matrix(), 100, 0.95, 1000)
+    min_cost_run = np.argmin(best_costs)
+    print(f"Best cost: {best_costs[min_cost_run]}")
+    print(f"Best permutation: {best_permutations[min_cost_run]}")
 
-    print(f"Best permutation: {best_permutation}")
-    print(f"Best cost: {best_cost}")
+    box_plot_chain_length(costs_matrix)
+    print_cost_iterations_log(best_costs, costs_matrix)
+
+    best_permutations, best_costs, costs_matrix = run_multiple_simulated_annealing(config.build_distances_matrix(), 10, 0.005, lambda t, a: t - a)
+    
+    min_cost_run = np.argmin(best_costs)
+    print(f"Best cost: {best_costs[min_cost_run]}")
+    print(f"Best permutation: {best_permutations[min_cost_run]}")
+
+    box_plot_chain_length(costs_matrix)
+    print_cost_iterations_log(best_costs, costs_matrix)
+
+    best_permutations, best_costs, costs_matrix = run_multiple_simulated_annealing(config.build_distances_matrix(), 10, 0.005, lambda t, a: t - a)
+    
+    min_cost_run = np.argmin(best_costs)
+    print(f"Best cost: {best_costs[min_cost_run]}")
+    print(f"Best permutation: {best_permutations[min_cost_run]}")
+
+    box_plot_chain_length(costs_matrix)
+    print_cost_iterations_log(best_costs, costs_matrix)    
+
     # Read tour solution
-    tour = read_tour_solution("../TSP-Configurations/a280.opt.tour.txt")
-    tour_cities = np.array([c for c in tour.keys()]) - 1
-    tour_cost = calculate_tour_cost(config.build_distances_matrix(), tour_cities)
-    print(f"Tour length: {tour_cost}")
-    print(f"First few tour positions: {dict(list(tour.items())[:5])}")
+    tour = read_tour_solution("../TSP-Configurations/eil51.opt.tour.txt")
+    tour_cost = calculate_tour_cost(config.build_distances_matrix(), tour)
+    print(f"Opt tour cost: {tour_cost}")
+    print(f"First few tour positions: {tour[:5]}")
+    
+
+    
