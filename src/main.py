@@ -106,44 +106,40 @@ if __name__ == "__main__":
     config = read_tsp_configuration("../TSP-Configurations/eil51.tsp.txt")
     print(f"Problem Name: {config.name}")
     print(f"Dimension: {config.dimension}")
-    print(f"First 5 Node Coordinates: {config.node_coordinates[:5]}")
+    # print(f"First 5 Node Coordinates: {config.node_coordinates[:5]}")
     
     save_distances_matrix(config.build_distances_matrix())
     plot_nodes(config.node_coordinates, savefig=False)
     
-    # Run multiple simulated annealing experiments
-    best_permutations, best_costs, costs_matrix = run_multiple_simulated_annealing(config.build_distances_matrix(), 100, 0.95)
+    # # Run multiple simulated annealing experiments
+    params = {
+        "initial_temperature": [100, 10, 10],
+        "cooling_factor": [0.95, 0.005, 0.005],
+        "cooling_schedule": [lambda t, a : t * a, lambda t, a : t - a, lambda t, a : t - a]
+    }
 
-    min_cost_run = np.argmin(best_costs)
-    print(f"Best cost: {best_costs[min_cost_run]}")
-    print(f"Best permutation: {best_permutations[min_cost_run]}")
+    for i in range(3):
+        print(f"Running experiment {i+1}")
+        print(f"--> Initial temperature: {params['initial_temperature'][i]}")
+        print(f"--> Cooling factor: {params['cooling_factor'][i]}")
+        best_permutation, best_costs, costs_matrix = run_multiple_simulated_annealing(config.build_distances_matrix(), 
+            params["initial_temperature"][i], params["cooling_factor"][i], params["cooling_schedule"][i]
+        )
 
-    box_plot_chain_length(costs_matrix)
-    print_cost_iterations_log(best_costs, costs_matrix)
+        min_cost_run = np.argmin(best_costs)
+        print(f"--> Best cost: {best_costs[min_cost_run]}")
+        print(f"--> Best permutation: {best_permutation[min_cost_run]}\n")
+        box_plot_chain_length(costs_matrix)
+        print_cost_iterations_log(best_costs, costs_matrix) 
 
-    best_permutations, best_costs, costs_matrix = run_multiple_simulated_annealing(config.build_distances_matrix(), 10, 0.005, lambda t, a: t - a)
+        plot_tour(best_permutation[min_cost_run], config.node_coordinates, savefig=False)
     
-    min_cost_run = np.argmin(best_costs)
-    print(f"Best cost: {best_costs[min_cost_run]}")
-    print(f"Best permutation: {best_permutations[min_cost_run]}")
-
-    box_plot_chain_length(costs_matrix)
-    print_cost_iterations_log(best_costs, costs_matrix)
-
-    best_permutations, best_costs, costs_matrix = run_multiple_simulated_annealing(config.build_distances_matrix(), 10, 0.005, lambda t, a: t - a)
-    
-    min_cost_run = np.argmin(best_costs)
-    print(f"Best cost: {best_costs[min_cost_run]}")
-    print(f"Best permutation: {best_permutations[min_cost_run]}")
-
-    box_plot_chain_length(costs_matrix)
-    print_cost_iterations_log(best_costs, costs_matrix)    
-
     # Read tour solution
     tour = read_tour_solution("../TSP-Configurations/eil51.opt.tour.txt")
     tour_cost = calculate_tour_cost(config.build_distances_matrix(), tour)
     print(f"Opt tour cost: {tour_cost}")
-    print(f"First few tour positions: {tour[:5]}")
-    
+    # print(f"First few tour positions: {tour[:5]}")
+
+
 
     

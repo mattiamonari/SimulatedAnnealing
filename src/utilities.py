@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 from configuration import TSPConfiguration
 
 __all__ = ["read_tsp_configuration", "read_tour_solution", "save_distances_matrix", 
-           "plot_nodes", "box_plot_chain_length", "print_cost_iterations_log"]
+           "plot_nodes", "box_plot_chain_length", "print_cost_iterations_log", 
+           "plot_tour"]
 
 def read_tour_solution(tour_file_path: str) -> Dict[int, int]:
     """
@@ -129,3 +130,31 @@ def box_plot_chain_length(costs_matrix, filename='chain_length.pdf'):
     plt.ylabel('Cost')
     plt.savefig(f'../images/{filename}.pdf')
     plt.show()
+
+def plot_tour(best_permutation, node_coordinates, savefig=False):
+    xs = [node_coordinates[i][0] for i in best_permutation]
+    ys = [node_coordinates[i][1] for i in best_permutation]
+    xs.append(xs[0])
+    ys.append(ys[0])
+
+    xs, ys = np.array(xs), np.array(ys)
+
+    plt.figure(figsize=(10, 8))
+    # quiver plot for the route
+    # https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.quiver.html
+    plt.quiver(xs[:-1], ys[:-1], xs[1:] - xs[:-1], ys[1:] - ys[:-1], scale_units='xy', angles='xy', scale=1, width=0.004)
+
+    # plot cities
+    plt.scatter(xs, ys, color='black', s=5, zorder=100)
+    # add label on each city
+    for i in range(len(xs) - 1):
+        plt.text(xs[i], ys[i] + 0.6, str(best_permutation[i] + 1), fontsize=8, ha='center', va='center')
+    # add a star to starting point
+    plt.plot(xs[0], ys[0], 'ro', label='Starting Point')
+    plt.xlabel('X Coordinates')
+    plt.ylabel('Y Coordinates')
+    plt.legend()
+    
+    if savefig: plt.savefig(f'../images/tour.pdf')
+    else: plt.show()
+    plt.close()
