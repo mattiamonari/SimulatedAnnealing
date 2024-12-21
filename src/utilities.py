@@ -128,7 +128,7 @@ def box_plot_chain_length(costs_matrix, filename='chain_length.pdf'):
     plt.boxplot([arr.shape[0] for arr in costs_matrix])
     plt.xlabel('Iterations')
     plt.ylabel('Cost')
-    plt.savefig(f'../images/{filename}.pdf')
+    plt.savefig(f'../images/{filename}')
     plt.show()
 
 def plot_tour(best_permutation, node_coordinates, savefig=False):
